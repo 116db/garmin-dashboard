@@ -36,10 +36,11 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const client = new GarminConnect({ username: email, password });
     await client.login();
-    const userInfo = await client.getUserInfo();
+    const userInfo = await client.getUserProfile();
 
     req.session.authenticated = true;
     req.session.userInfo = userInfo;
+
     req.session.credentials = { username: email, password };
 
     res.json({ success: true, user: userInfo });
@@ -91,7 +92,7 @@ app.get('/api/health/heart-rate', requireAuth, async (req, res) => {
 app.get('/api/athlete', requireAuth, async (req, res) => {
   try {
     const client = await getClient(req);
-    const profile = await client.getUserInfo();
+    const profile = await client.getUserProfile();
     res.json(profile);
   } catch (e) {
     res.status(500).json({ error: 'Error obteniendo perfil' });
