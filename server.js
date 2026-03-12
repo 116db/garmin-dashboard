@@ -2,10 +2,10 @@ const express = require('express');
 const session = require('express-session');
 const { exec } = require('child_process');
 const path = require('path');
+const GARMIN_PATH = `/usr/local/bin:/root/.local/bin:${process.env.PATH}`;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const GARMIN_PATH = `${process.env.HOME}/.local/bin:${process.env.PATH}`;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -4,7 +4,9 @@ nixPkgs = ["curl", "bash"]
 [phases.install]
 cmds = [
   "npm install",
-  "curl -fsSL https://raw.githubusercontent.com/eddmann/garmin-connect-cli/main/install.sh | sh"
+  "curl -fsSL https://raw.githubusercontent.com/eddmann/garmin-connect-cli/main/install.sh | sh",
+  "mkdir -p /root/.local/bin",
+  "cp ~/.local/bin/garmin-connect /usr/local/bin/garmin-connect || true"
 ]
 
 [start]
