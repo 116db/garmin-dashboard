@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garmin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #060608;
+  --surface: #0e0e14;
+  --card: #14141e;
+  --card2: #1c1c28;
+  --border: #252535;
+  --border2: #303048;
+  --cyan: #00e5ff;
+  --pink: #ff4d6d;
+  --green: #39d98a;
+  --yellow: #ffd60a;
+  --purple: #b57bee;
+  --text: #ddddf0;
+  --muted: #5a5a7a;
+  --muted2: #7a7a9a;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ══════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════ */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 50%, rgba(0,229,255,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 80% 20%, rgba(181,123,238,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 60% 80%, rgba(255,77,109,0.04) 0%, transparent 70%);
+}
+
+/* Grid lines */
+.login-bg::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.login-box {
+  position: relative; z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  margin: 24px;
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-logo h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.login-logo h1 .dot { color: var(--cyan); }
+
+.login-logo p {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 36px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02);
+}
+
+.login-card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.login-card .subtitle {
+  font-size: 0.8rem;
+  color: var(--muted2);
+  margin-bottom: 28px;
+  font-family: 'Space Mono', monospace;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted2);
+  margin-bottom: 8px;
+}
+
+.field input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+}
+
+.field input::placeholder { color: var(--muted); }
+
+.btn-primary {
+  width: 100%;
+  background: var(--cyan);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s, transform 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.login-note {
+  margin-top: 20px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+
+.error-msg {
+  background: rgba(255,77,109,0.12);
+  border: 1px solid rgba(255,77,109,0.3);
+  color: var(--pink);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  margin-bottom: 16px;
+  display: none;
+}
+
+/* ══════════════════════════════════════
+   LOADING SCREEN
+══════════════════════════════════════ */
+#loading-screen {
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.loader-ring {
+  width: 56px; height: 56px;
+  border: 3px solid var(--border);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+#dashboard {
+  display: none;
+  min-height: 100vh;
+}
+
+/* Top nav */
+.topnav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 32px;
+  background: rgba(6,6,8,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-brand {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.nav-brand span { color: var(--cyan); }
+
+.nav-right {
+  display: flex; align-items: center; gap: 16px;
+}
+
+.user-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 7px 14px 7px 10px;
+  font-size: 0.78rem;
+}
+
+.user-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #000;
+  flex-shrink: 0;
+}
+
+.btn-logout {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--muted2);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-logout:hover { border-color: var(--pink); color: var(--pink); }
+
+/* Main content */
+.main {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* Section title */
+.section-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+/* Stat chips */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 36px;
+}
+
+.stat-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.stat-chip:hover { transform: translateY(-3px); border-color: var(--border2); }
+
+.stat-chip-accent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 18px 18px 0 0;
+}
+
+.stat-chip-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.stat-chip-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.stat-chip-sub {
+  font-size: 0.7rem;
+  color: var(--muted2);
+  margin-top: 5px;
+}
+
+/* Charts */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+}
+
+.chart-card-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.chart-card-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 22px;
+}
+
+.chart-wrap { position: relative; height: 230px; }
+
+/* Activities */
+.activities-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.activities-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 100px 90px 90px 80px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid rgba(37,37,53,0.6);
+  transition: background 0.15s;
+}
+
+.activity-row:last-child { border-bottom: none; }
+.activity-row:hover { background: rgba(255,255,255,0.02); }
+
+.act-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.act-name { font-size: 0.88rem; font-weight: 600; }
+.act-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.act-metric { text-align: right; }
+.act-metric-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.act-metric-lbl {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.type-badge {
+  display: inline-flex; align-items: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  padding: 4px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* HR zones mini bar */
+.hr-zones {
+  display: flex; gap: 2px; height: 5px;
+  border-radius: 10px; overflow: hidden;
+  margin-top: 8px; width: 100px;
+}
+
+.hr-z { border-radius: 2px; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeIn 0.5s ease both; }
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.1s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.2s; }
+.delay-5 { animation-delay: 0.25s; }
+
+@media (max-width: 900px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid { grid-template-columns: 1fr; }
+  .activity-row { grid-template-columns: 48px 1fr auto; }
+  .activity-row .act-metric:nth-child(4),
+  .activity-row .act-metric:nth-child(5),
+  .activity-row .type-badge { display: none; }
+  .topnav { padding: 14px 20px; }
+  .main { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen">
+  <div class="login-bg"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>GARMIN<span class="dot">.</span>DASH</h1>
+      <p>Tu actividad · Tus datos · Tu ritmo</p>
+    </div>
+    <div class="login-card">
+      <h2>Iniciar sesión</h2>
+      <p class="subtitle">Usa tu cuenta de Garmin Connect</p>
+      <div class="error-msg" id="login-error"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="email-input" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="pass-input" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Conectar con Garmin</button>
+      <p class="login-note">
+        Tus credenciales se usan solo para autenticar<br>con Garmin Connect. No se almacenan en ningún servidor externo.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOADING SCREEN ══ -->
+<div id="loading-screen">
+  <div class="loader-ring"></div>
+  <p class="loader-text" id="loader-text">Cargando actividades...</p>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="dashboard">
+  <nav class="topnav">
+    <div class="nav-brand">GARMIN<span>.</span>DASH</div>
+    <div class="nav-right">
+      <div class="user-pill">
+        <div class="user-avatar" id="user-avatar">G</div>
+        <span id="user-name">Usuario</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- Stats -->
+    <div class="section-eyebrow">Resumen</div>
+    <div class="stats-row" id="stats-row">
+      <div class="stat-chip fade-in delay-1">
+        <div class="stat-chip-accent" style="background: var(--cyan)"></div>
+        <div class="stat-chip-label">Actividades</div>
+        <div class="stat-chip-value" id="stat-count" style="color:var(--cyan)">—</div>
+        <div class="stat-chip-sub">registradas</div>
+      </div>
+      <div class="stat-chip fade-in delay-2">
+        <div class="stat-chip-accent" style="background: var(--pink)"></div>
+        <div class="stat-chip-label">Distancia total</div>
+        <div class="stat-chip-value" id="stat-dist" style="color:var(--pink)">—</div>
+        <div class="stat-chip-sub">kilómetros</div>
+      </div>
+      <div class="stat-chip fade-in delay-3">
+        <div class="stat-chip-accent" style="background: var(--green)"></div>
+        <div class="stat-chip-label">Calorías</div>
+        <div class="stat-chip-value" id="stat-cal" style="color:var(--green)">—</div>
+        <div class="stat-chip-sub">kcal quemadas</div>
+      </div>
+      <div class="stat-chip fade-in delay-4">
+        <div class="stat-chip-accent" style="background: var(--yellow)"></div>
+        <div class="stat-chip-label">FC promedio</div>
+        <div class="stat-chip-value" id="stat-hr" style="color:var(--yellow)">—</div>
+        <div class="stat-chip-sub">bpm en actividades</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid fade-in delay-3">
+      <div class="chart-card">
+        <div class="chart-card-title">Progresión</div>
+        <div class="chart-card-heading">Distancia por actividad</div>
+        <div class="chart-wrap"><canvas id="distChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Cardio</div>
+        <div class="chart-card-heading">Ritmo cardíaco</div>
+        <div class="chart-wrap"><canvas id="hrChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Activities list -->
+    <div class="activities-section fade-in delay-5">
+      <div class="activities-header">
+        <div>
+          <div class="section-eyebrow">Historial</div>
+          <div style="font-size:1rem; font-weight:700;">Actividades recientes</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="filter-type" onchange="renderActivities()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-family:'Space Mono',monospace;font-size:0.65rem;outline:none;cursor:pointer;">
+            <option value="">Todos los tipos</option>
+            <option value="cycling">🚴 Ciclismo</option>
+            <option value="lap_swimming">🏊 Natación</option>
+            <option value="running">🏃 Running</option>
+          </select>
+        </div>
+      </div>
+      <div id="activity-list">
+        <div class="empty-state">Cargando actividades...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STATE ══
+let allActivities = [];
+let distChart = null;
+let hrChart = null;
+
+// ══ ACTIVITY CONFIG ══
+const actConfig = {
+  cycling:       { icon: '🚴', bg: 'rgba(0,229,255,0.12)',   color: 'var(--cyan)',   label: '🚴 Ciclismo',  badgeBg: 'rgba(0,229,255,0.15)',   badgeColor: 'var(--cyan)' },
+  lap_swimming:  { icon: '🏊', bg: 'rgba(57,217,138,0.12)',  color: 'var(--green)',  label: '🏊 Natación',  badgeBg: 'rgba(57,217,138,0.15)',   badgeColor: 'var(--green)' },
+  running:       { icon: '🏃', bg: 'rgba(255,77,109,0.12)',  color: 'var(--pink)',   label: '🏃 Running',   badgeBg: 'rgba(255,77,109,0.15)',   badgeColor: 'var(--pink)' },
+  stop_watch:    { icon: '⏱️', bg: 'rgba(255,214,10,0.12)',  color: 'var(--yellow)', label: '⏱️ Cronóm.',  badgeBg: 'rgba(255,214,10,0.15)',   badgeColor: 'var(--yellow)' },
+  default:       { icon: '⚡', bg: 'rgba(181,123,238,0.12)', color: 'var(--purple)', label: '⚡ Actividad', badgeBg: 'rgba(181,123,238,0.15)',  badgeColor: 'var(--purple)' },
+};
+
+function getConfig(typeKey) {
+  return actConfig[typeKey] || actConfig.default;
+}
+
+// ══ UTILS ══
+function fmtDist(m) {
+  if (!m) return '—';
+  return (m / 1000).toFixed(2) + ' km';
+}
+
+function fmtDuration(s) {
+  if (!s) return '—';
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${m % 60}m`;
+  return `${m}m`;
+}
+
+function fmtDate(str) {
+  if (!str) return '';
+  const d = new Date(str.replace(' ', 'T'));
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+    + ' · ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+function shortName(str) {
+  if (!str) return '?';
+  return str.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+// ══ AUTH ══
+async function checkAuth() {
+  try {
+    const r = await fetch('/api/auth/status');
+    const d = await r.json();
+    return d;
+  } catch { return { authenticated: false }; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('email-input').value.trim();
+  const pass = document.getElementById('pass-input').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+
+  errEl.style.display = 'none';
+  if (!email || !pass) {
+    errEl.textContent = 'Por favor ingresa email y contraseña.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Conectando...';
+
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const d = await r.json();
+
+    if (d.success) {
+      showLoading('Autenticado ✓ Cargando tus datos...');
+      await loadDashboard(d.user);
+    } else {
+      errEl.textContent = d.error || 'Error al iniciar sesión.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Conectar con Garmin';
+    }
+  } catch (e) {
+    errEl.textContent = 'Error de conexión con el servidor.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Conectar con Garmin';
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  location.reload();
+}
+
+// Allow Enter key on inputs
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    doLogin();
+  }
+});
+
+// ══ SCREENS ══
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+function showLoading(msg = 'Cargando...') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('loader-text').textContent = msg;
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+// ══ LOAD DATA ══
+async function loadDashboard(user) {
+  // Set user info
+  const name = user?.full_name || user?.email || 'Usuario';
+  document.getElementById('user-name').textContent = name.split(' ')[0];
+  document.getElementById('user-avatar').textContent = shortName(name);
+
+  showLoading('Obteniendo actividades de Garmin...');
+
+  try {
+    const r = await fetch('/api/activities?limit=25');
+    allActivities = await r.json();
+    if (!Array.isArray(allActivities)) allActivities = [];
+  } catch {
+    allActivities = [];
+  }
+
+  updateStats();
+  renderCharts();
+  renderActivities();
+  showDashboard();
+}
+
+// ══ STATS ══
+function updateStats() {
+  const acts = allActivities;
+  const totalDist = acts.reduce((s, a) => s + (a.distance || 0), 0) / 1000;
+  const totalCal = acts.reduce((s, a) => s + (a.calories || 0), 0);
+  const hrActs = acts.filter(a => a.averageHR);
+  const avgHR = hrActs.length ? Math.round(hrActs.reduce((s, a) => s + a.averageHR, 0) / hrActs.length) : 0;
+
+  document.getElementById('stat-count').textContent = acts.length;
+  document.getElementById('stat-dist').textContent = totalDist > 0 ? totalDist.toFixed(1) : '—';
+  document.getElementById('stat-cal').textContent = totalCal > 0 ? totalCal.toLocaleString() : '—';
+  document.getElementById('stat-hr').textContent = avgHR > 0 ? avgHR : '—';
+}
+
+// ══ CHARTS ══
+const chartDefaults = {
+  plugins: { legend: { display: false }, tooltip: {
+    backgroundColor: '#1a1a26',
+    borderColor: '#252535',
+    borderWidth: 1,
+    titleColor: '#5a5a7a',
+    bodyColor: '#ddddf0',
+    padding: 12,
+  }},
+  scales: {
+    x: { ticks: { color: '#5a5a7a', font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: '#252535' } },
+    y: { ticks: { color: '#5a5a7a', font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: '#252535' } }
+  }
+};
+
+function renderCharts() {
+  const withDist = allActivities.filter(a => a.distance > 0).slice(0, 12).reverse();
+  const withHR = allActivities.filter(a => a.averageHR).slice(0, 10).reverse();
+
+  // Dist chart
+  if (distChart) distChart.destroy();
+  const dCtx = document.getElementById('distChart').getContext('2d');
+  distChart = new Chart(dCtx, {
+    type: 'bar',
+    data: {
+      labels: withDist.map(a => {
+        const d = new Date(a.startTimeLocal.replace(' ', 'T'));
+        return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+      }),
+      datasets: [{
+        data: withDist.map(a => +(a.distance / 1000).toFixed(2)),
+        backgroundColor: withDist.map(a => {
+          const c = getConfig(a.activityType?.typeKey);
+          return c.bg.replace('0.12', '0.7');
+        }),
+        borderColor: withDist.map(a => getConfig(a.activityType?.typeKey).color),
+        borderWidth: 1,
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { ...chartDefaults.plugins,
+        tooltip: { ...chartDefaults.plugins.tooltip, callbacks: { label: c => ` ${c.parsed.y} km` } }
+      },
+      scales: chartDefaults.scales
+    }
+  });
+
+  // HR chart
+  if (hrChart) hrChart.destroy();
+  const hCtx = document.getElementById('hrChart').getContext('2d');
+  hrChart = new Chart(hCtx, {
+    type: 'line',
+    data: {
+      labels: withHR.map(a => {
+        const d = new Date(a.startTimeLocal.replace(' ', 'T'));
+        return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+      }),
+      datasets: [
+        {
+          label: 'FC Promedio',
+          data: withHR.map(a => a.averageHR),
+          borderColor: '#00e5ff',
+          backgroundColor: 'rgba(0,229,255,0.08)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#00e5ff',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'FC Máxima',
+          data: withHR.map(a => a.maxHR),
+          borderColor: '#ff4d6d',
+          backgroundColor: 'rgba(255,77,109,0.05)',
+          tension: 0.4,
+          fill: false,
+          borderDash: [4, 3],
+          pointBackgroundColor: '#ff4d6d',
+          pointRadius: 3,
+          pointHoverRadius: 5,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#5a5a7a', font: { family: 'Space Mono', size: 9 }, boxWidth: 10, padding: 12 }
+        },
+        tooltip: { ...chartDefaults.plugins.tooltip, callbacks: { label: c => ` ${c.parsed.y} bpm` } }
+      },
+      scales: chartDefaults.scales
+    }
+  });
+}
+
+// ══ ACTIVITIES LIST ══
+function renderActivities() {
+  const filterType = document.getElementById('filter-type').value;
+  const filtered = filterType
+    ? allActivities.filter(a => a.activityType?.typeKey === filterType)
+    : allActivities;
+
+  const el = document.getElementById('activity-list');
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state">No hay actividades para mostrar.</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(a => {
+    const cfg = getConfig(a.activityType?.typeKey);
+    const z1 = a.hrTimeInZone_1 || 0;
+    const z2 = a.hrTimeInZone_2 || 0;
+    const z3 = a.hrTimeInZone_3 || 0;
+    const zTotal = z1 + z2 + z3;
+    const zonesHtml = zTotal > 0 ? `
+      <div class="hr-zones">
+        <div class="hr-z" style="flex:${z1};background:#39d98a;"></div>
+        <div class="hr-z" style="flex:${z2};background:#ffd60a;"></div>
+        <div class="hr-z" style="flex:${z3};background:#ff4d6d;"></div>
+      </div>` : '';
+
+    return `
+    <div class="activity-row">
+      <div class="act-icon" style="background:${cfg.bg}">${cfg.icon}</div>
+      <div>
+        <div class="act-name">${a.activityName || 'Actividad'}</div>
+        <div class="act-date">${fmtDate(a.startTimeLocal)}</div>
+        ${zonesHtml}
+      </div>
+      <div class="act-metric">
+        <div class="act-metric-val">${fmtDist(a.distance)}</div>
+        <div class="act-metric-lbl">distancia</div>
+      </div>
+      <div class="act-metric">
+        <div class="act-metric-val" style="color:${cfg.color}">${a.calories ? a.calories.toLocaleString() : '—'}</div>
+        <div class="act-metric-lbl">kcal</div>
+      </div>
+      <div class="act-metric">
+        <div class="act-metric-val">${a.averageHR ? a.averageHR + ' bpm' : '—'}</div>
+        <div class="act-metric-lbl">FC prom.</div>
+      </div>
+      <span class="type-badge" style="background:${cfg.badgeBg};color:${cfg.badgeColor}">${cfg.label}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══ INIT ══
+(async () => {
+  showLoading('Verificando sesión...');
+  const auth = await checkAuth();
+  if (auth.authenticated) {
+    await loadDashboard(auth.user);
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
