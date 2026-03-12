@@ -1,15 +1,2 @@
-[phases.setup]
-nixPkgs = ["curl", "bash"]
-
-[phases.install]
-cmds = [
-  "npm install",
-  "curl -fsSL https://raw.githubusercontent.com/eddmann/garmin-connect-cli/main/install.sh | bash",
-  "echo '=== Buscando binario ==='",
-  "find / -name 'garmin-connect' 2>/dev/null || echo 'NO ENCONTRADO'",
-  "echo '=== PATH actual ==='",
-  "echo $PATH"
-]
-
 [start]
 cmd = "npm start"
